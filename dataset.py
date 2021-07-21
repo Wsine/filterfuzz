@@ -18,10 +18,13 @@ class PostTransformDataset(Dataset):
         x, y = self.dataset[idx]
         q = self.mutators[idx]
         imgs = []
+        trfm = []
         for t in q:
-            imgs.append(t(x))
+            for pic, mut in t(x, idx):
+                imgs.append(pic)
+                trfm.append(mut)
         labels = [y] * len(q)
-        return imgs, labels
+        return imgs, trfm, labels
 
 
 def load_dataset(opt):
@@ -35,8 +38,6 @@ def load_dataset(opt):
         std = (0.2675, 0.2565, 0.2761)
     elif opt.dataset == 'gtsrb':
         dataset = GTSRB
-        #  mean = (0.3403, 0.3121, 0.3214)
-        #  std = (0.2724, 0.2608, 0.2669)
         mean = (0.3337, 0.3064, 0.3171)
         std = (0.2672, 0.2564, 0.2629)
     else:
@@ -57,19 +58,20 @@ def load_dataset(opt):
 
 
 def _custom_collate(batch):
-    inputs, targets = [], []
-    for imgs, labels in batch:
+    inputs, descs, targets = [], [], []
+    for imgs, trfm, labels in batch:
         for img, label in zip(imgs, labels):
             inputs.append(img)
             targets.append(label)
-    return torch.stack(inputs), torch.LongTensor(targets)
+        descs += trfm
+    return torch.stack(inputs), descs, torch.LongTensor(targets)
 
 
 def generate_test_dataset(opt, testset, mutators=None):
     if mutators is not None:
         testset = PostTransformDataset(testset, mutators)
     testloader = DataLoader(
-        testset, batch_size=opt.batch_size, shuffle=False, num_workers=8,
+        testset, batch_size=opt.batch_size, shuffle=False, num_workers=32,
         collate_fn=_custom_collate if mutators is not None else None
     )
     return testloader

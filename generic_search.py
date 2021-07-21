@@ -1,7 +1,7 @@
 import random
 import copy
 
-import torchvision.transforms.functional as F
+import torchvision.transforms.functional as TF
 
 class Mutator(object):
     def __init__(
@@ -17,25 +17,47 @@ class Mutator(object):
         self.brighten = brighten
         self.contrast = contrast
 
-    def __call__(self, x):
-        if self.flip:
-            x = F.hflip(x)
-        x = F.affine(
-            x,
-            angle=self.rotate,
-            translate=[self.translate, self.translate_v],
-            scale=self.zoom,
-            shear=self.shear
-        )
-        x = F.adjust_brightness(x, self.brighten)
-        x = F.adjust_contrast(x, self.contrast)
-        return x
+    def __call__(self, x, idx):
+        mx = []
+        mx.append((TF.hflip(x) if self.flip else x, self._format_ops(idx, 'flip')))
+        mx.append((TF.rotate(x, angle=self.rotate), self._format_ops(idx, 'rotate')))
+        mx.append((TF.affine(x, 0, [self.translate, self.translate_v], 1., [0, 0]),
+                   self._format_ops(idx, 'translate')))
+        mx.append((TF.affine(x, 0, [0, 0], self.zoom, [0, 0]), self._format_ops(idx, 'zoom')))
+        mx.append((TF.affine(x, 0, [0, 0], 1., self.shear), self._format_ops(idx, 'shear')))
+        mx.append((TF.affine(x, self.rotate, [self.translate, self.translate_v], 1., [0, 0]),
+                   self._format_ops(idx, ['rotate', 'translate'])))
+        mx.append((TF.affine(x, self.rotate, [0, 0], 1., self.shear), \
+                   self._format_ops(idx, ['rotate', 'shear'])))
+        mx.append((TF.adjust_brightness(x, self.brighten), self._format_ops(idx, 'brighten')))
+        mx.append((TF.adjust_contrast(x, self.contrast), self._format_ops(idx, 'contrast')))
+        return mx
+
+    def _format_ops(self, idx, attrs):
+        desc_img = 'image: {}'.format(idx)
+        desc_mutate = []
+        if not isinstance(attrs, list):
+            attrs = [attrs]
+        for attr in attrs:
+            if attr in ('flip', 'shear'):
+                desc_mutate.append(f'{attr}: {getattr(self, attr)}')
+            elif attr == 'translate':
+                desc_mutate.append(f"{attr}: ({getattr(self, attr):.3f}, {getattr(self, attr+'_v'):.3f})")
+            elif attr in ('rotate', 'zoom'):
+                desc_mutate.append(f'{attr}: {getattr(self, attr):.2f}')
+            elif attr in ('brighten', 'contrast'):
+                desc_mutate.append(f'{attr}: {getattr(self, attr):.3f}')
+            else:
+                raise ValueError('Invalid attribuate')
+        desc_mutate = ', '.join(desc_mutate)
+        desc = desc_img + ' | ' + desc_mutate
+        return desc
 
 
 class Chromosome(object):
     flip_range = [True, False]
-    rotate_step = 1
-    rotate_range = range(-30, 31)  # [-30, 30, 1]
+    rotate_step = 0.25
+    rotate_range = [r/4. for r in range(-60, 61)]  # [-15, 15, 0.25]
     translate_step = 0.005
     translate_range = [t/200. for t in range(-20, 21) ]  # [-10%, 10%, 0.5%]
     translate_v_step = 0.005
@@ -44,11 +66,11 @@ class Chromosome(object):
     shear_range = range(-10, 11)  # [-10, 10, 1]
 
     zoom_step = 0.01
-    zoom_range = [z/100. for z in range(90, 111)]  # [-0.9, 1,1, 0.01]
+    zoom_range = [z/100. for z in range(90, 111)]  # [0.9, 1,1, 0.01]
     brighten_step = 0.025
-    brighten_range = [b/40. for b in range(32, 49)]  # [-0.8, 1.2, 0.025]
+    brighten_range = [b/40. for b in range(32, 49)]  # [0.8, 1.2, 0.025]
     contrast_step = 0.025
-    contrast_range = [c/40. for c in range(32, 49)]  # [-0.8, 1.2, 0.025]
+    contrast_range = [c/40. for c in range(32, 49)]  # [0.8, 1.2, 0.025]
 
     def __init__(
             self,
@@ -71,8 +93,8 @@ class Chromosome(object):
             self.mutator.brighten = random.choice(self.brighten_range)
             self.mutator.contrast = random.choice(self.contrast_range)
 
-    def __call__(self, x):
-        return self.mutator(x)
+    def __call__(self, x, idx):
+        return self.mutator(x, idx)
 
     def mutate(self):
         mutator_attr = list(self.mutator.__dict__.keys())
@@ -94,7 +116,7 @@ class Chromosome(object):
             elif op == 'substract':
                 v = min(max(v - s, r[0]), r[-1])
             else:  # mirror
-                if c in ('zoom', 'contrast'):
+                if c in ('zoom', 'contrast', 'brighten'):
                     v = 2. - v
                 else:
                     v *= -1
