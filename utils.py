@@ -1,5 +1,4 @@
 import os
-import errno
 import json
 import pickle
 import functools
@@ -66,27 +65,16 @@ def preview_object(obj):
     print(json.dumps(_reduce_object(obj), indent=2, ensure_ascii=False))
 
 
-def export_object(opt, filename, code, obj):
+def export_object(opt, filename, obj):
     mode = 'b' if filename.endswith('.pkl') else ''
     dstdir = os.path.join(opt.output_dir, opt.dataset, opt.model)
 
-    basename, ext = os.path.splitext(filename)
-    filepath = os.path.join(dstdir, f"{basename}_{code}{ext}")
+    filepath = os.path.join(dstdir, filename)
     with open(filepath, f'w{mode}') as f:
         if mode == 'b':
             pickle.dump(obj, f)
         else:
             json.dump(obj, f, indent=2, ensure_ascii=False)
-
-    sympath = os.path.join(dstdir, f"{filename}")
-    try:
-        os.symlink(f"{basename}_{code}{ext}", sympath)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            os.remove(sympath)
-            os.symlink(f"{basename}_{code}{ext}", sympath)
-        else:
-            raise e
 
 
 # borrow from: https://stackoverflow.com/questions/31174295/

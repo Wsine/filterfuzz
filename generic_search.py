@@ -195,12 +195,15 @@ class GenericSearcher(object):
 
 
     def fitness(self, covs=None):
-        if not covs:
+        if covs is None:
             for i in range(self.num_test):
                 m = random.sample(self.mutator_pops[i], self.genesize)
                 self.mutator_seeds[i] = m
         else:
-            raise NotImplemented
+            _, top_covs = covs.topk(self.genesize, dim=-1)
+            for i in range(self.num_test):
+                m = [self.mutator_pops[i][j.item()] for j in top_covs[i]]
+                self.mutator_seeds[i] = m
 
         self.mutator_pops.clear()
 

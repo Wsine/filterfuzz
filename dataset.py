@@ -1,7 +1,7 @@
 import torch
 import torchvision
 import torchvision.transforms as T
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 
 from datasets.gtsrb import GTSRB
 
@@ -27,34 +27,22 @@ class PostTransformDataset(Dataset):
         return imgs, trfm, labels
 
 
-def load_dataset(opt):
-    if opt.dataset == "cifar10":
-        dataset = torchvision.datasets.CIFAR10
-        mean = (0.4914, 0.4822, 0.4465)
-        std = (0.2023, 0.1994, 0.2010)
-    elif opt.dataset == "cifar100":
-        dataset = torchvision.datasets.CIFAR100
-        mean = (0.5071, 0.4867, 0.4408)
-        std = (0.2675, 0.2565, 0.2761)
-    elif opt.dataset == 'gtsrb':
-        dataset = GTSRB
-        mean = (0.3337, 0.3064, 0.3171)
-        std = (0.2672, 0.2564, 0.2629)
-    else:
-        raise ValueError("Invalid dataset value")
+def load_dataset(opt, set_type='test'):
+    mean = (0.3337, 0.3064, 0.3171)
+    std = (0.2672, 0.2564, 0.2629)
 
-    common_transformers = [
+    transformers = [
         T.Resize((32, 32)),
         T.ToTensor(),
         T.Normalize(mean, std)
     ]
 
-    testset = dataset(
-        root=opt.data_dir, train=False, download=True,
-        transform=T.Compose(common_transformers)
+    dataset = GTSRB(
+        root_dir=opt.data_dir, stype=set_type,
+        transform=T.Compose(transformers)
     )
 
-    return testset
+    return dataset
 
 
 def _custom_collate(batch):
