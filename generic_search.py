@@ -3,6 +3,7 @@ import copy
 
 import torchvision.transforms.functional as TF
 
+
 class Mutator(object):
     def __init__(
             self,
@@ -75,11 +76,11 @@ class Chromosome(object):
     def __init__(
             self,
             mutator=Mutator(), converage=0,
-            random=False, enable_filters=False):
+            rand_init=False, enable_filters=False):
         self.mutator = mutator
         self.cov = converage
         self.enable_filters = enable_filters
-        if random:
+        if rand_init:
             self._random_init()
 
     def _random_init(self):
@@ -148,18 +149,16 @@ class GenericSearcher(object):
         self.mutator_seeds = self._init_mutator()
         self.mutator_pops = []
 
-
     def _init_mutator(self):
         e = self.enable_filters
         seeds = []
         for _ in range(self.num_test):
             mutators = []
             for _ in range(self.genesize):
-                chromo = Chromosome(random=True, enable_filters=e)
+                chromo = Chromosome(rand_init=True, enable_filters=e)
                 mutators.append(chromo)
             seeds.append(mutators)
         return seeds
-
 
     def generate_next_population(self):
         prob = random.uniform(0, 1)
@@ -170,40 +169,40 @@ class GenericSearcher(object):
 
         return self.mutator_pops
 
-
     def mutate(self):
         for i in range(self.num_test):
             q = self.mutator_seeds[i]
-            top_item = q[0]
             pops = []
             for _ in range(self.popsize):
-                item = top_item.mutate()
+                chromo = random.choice(q)
+                item = chromo.mutate()
                 pops.append(item)
             self.mutator_pops.append(pops)
-
 
     def crossover(self):
         for i in range(self.num_test):
             q = self.mutator_seeds[i]
-            top_item = q[0]
             pops = []
             for _ in range(self.popsize):
-                cross_item = random.choice(q[1:self.genesize])
-                item = top_item.crossover(cross_item)
+                item1, item2 = random.sample(q, 2)
+                item = item1.crossover(item2)
                 pops.append(item)
             self.mutator_pops.append(pops)
-
 
     def fitness(self, covs=None):
         if covs is None:
             for i in range(self.num_test):
-                m = random.sample(self.mutator_pops[i], self.genesize)
+                q = self.mutator_seeds[i] + self.mutator_pops[i]
+                m = random.sample(q, self.genesize)
                 self.mutator_seeds[i] = m
         else:
-            _, top_covs = covs.topk(self.genesize, dim=-1)
             for i in range(self.num_test):
-                m = [self.mutator_pops[i][j.item()] for j in top_covs[i]]
-                self.mutator_seeds[i] = m
+                for j in range(self.popsize):
+                    self.mutator_pops[i][j].cov = covs[i][j].item()
+                q = self.mutator_seeds[i] + self.mutator_pops[i]
+                random.shuffle(q)  # shuffle for zero converage layers
+                q = sorted(q, key=lambda c: c.cov, reverse=True)
+                self.mutator_seeds[i] = q
 
         self.mutator_pops.clear()
 

@@ -56,15 +56,16 @@ def test(
             # statistic converage
             if susp is None: continue
             for i, t in enumerate(targets):
+                sum_act, sum_neu = 0, 0
                 susp_l2chn = susp[str(t.item())]
                 for lname, chns in susp_l2chn.items():
                     if len(chns) == 0:
-                        nconv.append(0)
-                    else:
-                        act_info, n = conv_info[lname]
-                        sum_act = act_info[i][chns].sum().item()
-                        conv = sum_act / (n * len(chns))
-                        nconv.append(conv)
+                        continue
+                    act_info, n = conv_info[lname]
+                    sum_act += act_info[i][chns].sum().item()
+                    sum_neu += (n * len(chns))
+                conv = sum_act / sum_neu if sum_neu > 0 else 0
+                nconv.append(conv)
 
     if susp is None:
         return None
@@ -87,7 +88,7 @@ def _forward_conv(lname):
 def main():
     opt = parser.parse_args()
     print(opt)
-    guard_folder(opt)
+    guard_options(opt)
 
     logging.basicConfig(
         format='%(asctime)s - %(message)s',
@@ -113,7 +114,8 @@ def main():
     num_test = len(testset)
     gene = GenericSearcher(opt, num_test=num_test)
 
-    for _ in range(opt.fuzz_epoch):
+    for e in range(opt.fuzz_epoch):
+        print('fuzz epoch =', e)
         mutators = gene.generate_next_population()
         testloader = generate_test_dataset(opt, testset, mutators)
         mconv = test(model, testloader, device, susp, num_test, opt.popsize)

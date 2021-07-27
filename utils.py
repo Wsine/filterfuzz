@@ -11,6 +11,13 @@ def get_model_path(opt, state="best"):
     return path
 
 
+def guard_options(opt, **kwargs):
+    guard_folder(opt, **kwargs)
+
+    if opt.gpu_id is not None:
+        os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu_id
+
+
 def guard_folder(opt, folder=None):
     if not folder:
         folder = []

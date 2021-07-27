@@ -13,3 +13,7 @@ pandas = "*"
 
 [requires]
 python_version = "3.6"
+
+[scripts]
+stat_rand = "cat adversarial_samples_random.log | awk -F ' - ' '{print $2}' | uniq | wc -l"
+stat_conv = "cat adversarial_samples_conv.log | awk -F ' - ' '{print $2}' | uniq | wc -l"

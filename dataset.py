@@ -23,7 +23,7 @@ class PostTransformDataset(Dataset):
             for pic, mut in t(x, idx):
                 imgs.append(pic)
                 trfm.append(mut)
-        labels = [y] * len(q)
+        labels = [y] * len(imgs)
         return imgs, trfm, labels
 
 
@@ -48,9 +48,8 @@ def load_dataset(opt, set_type='test'):
 def _custom_collate(batch):
     inputs, descs, targets = [], [], []
     for imgs, trfm, labels in batch:
-        for img, label in zip(imgs, labels):
-            inputs.append(img)
-            targets.append(label)
+        inputs += imgs
+        targets += labels
         descs += trfm
     return torch.stack(inputs), descs, torch.LongTensor(targets)
 
