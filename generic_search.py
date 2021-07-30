@@ -97,7 +97,7 @@ class Chromosome(object):
     def __call__(self, x, idx):
         return self.mutator(x, idx)
 
-    def mutate(self):
+    def mutate(self, nonsurprise):
         mutator_attr = list(self.mutator.__dict__.keys())
         if self.enable_filters:
             choices = random.sample(mutator_attr, 4)
@@ -108,14 +108,19 @@ class Chromosome(object):
         for c in choices:
             v = getattr(self.mutator, c)
             if c == 'flip':
-                setattr(m, c, not v)  # revert it no matter what op
+                if nonsurprise is True:
+                    v = random.choice([True, False])
+                else:
+                    v = not v  # revert it no matter what op
+                setattr(m, c, v)
                 continue
             r = eval('self.{}_range'.format(c))
             s = eval('self.{}_step'.format(c))
+            t = random.choice(range(1, 4)) if nonsurprise is True else 1
             if op == 'add':
-                v = min(max(v + s, r[0]), r[-1])
+                v = min(max(v + t * s, r[0]), r[-1])
             elif op == 'substract':
-                v = min(max(v - s, r[0]), r[-1])
+                v = min(max(v - t * s, r[0]), r[-1])
             else:  # mirror
                 if c in ('zoom', 'contrast', 'brighten'):
                     v = 2. - v
@@ -147,6 +152,7 @@ class GenericSearcher(object):
         self.mutate_prob = opt.mutate_prob
         self.num_test = num_test
         self.mutator_seeds = self._init_mutator()
+        self.seeds_nonsurprise = [False] * self.num_test
         self.mutator_pops = []
 
     def _init_mutator(self):
@@ -175,7 +181,7 @@ class GenericSearcher(object):
             pops = []
             for _ in range(self.popsize):
                 chromo = random.choice(q)
-                item = chromo.mutate()
+                item = chromo.mutate(self.seeds_nonsurprise[i])
                 pops.append(item)
             self.mutator_pops.append(pops)
 
@@ -199,10 +205,13 @@ class GenericSearcher(object):
             for i in range(self.num_test):
                 for j in range(self.popsize):
                     self.mutator_pops[i][j].cov = covs[i][j].item()
+                least_cov = self.mutator_seeds[i][-1].cov
                 q = self.mutator_seeds[i] + self.mutator_pops[i]
                 random.shuffle(q)  # shuffle for zero converage layers
                 q = sorted(q, key=lambda c: c.cov, reverse=True)
                 self.mutator_seeds[i] = q
+                new_least_cov = self.mutator_seeds[i][-1].cov
+                self.seeds_nonsurprise[i] = not (new_least_cov > least_cov)
 
         self.mutator_pops.clear()
 

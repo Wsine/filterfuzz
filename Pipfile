@@ -15,5 +15,7 @@ pandas = "*"
 python_version = "3.6"
 
 [scripts]
-stat_rand = "cat adversarial_samples_random.log | awk -F ' - ' '{print $2}' | uniq | wc -l"
-stat_conv = "cat adversarial_samples_conv.log | awk -F ' - ' '{print $2}' | uniq | wc -l"
+stat_sum = "./scripts/stat_sum.sh"
+stat_overlap = "./scripts/stat_overlap.sh"
+stat_dist = "./scripts/stat_dist.sh"
+
