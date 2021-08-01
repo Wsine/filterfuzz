@@ -75,10 +75,11 @@ class Chromosome(object):
 
     def __init__(
             self,
-            mutator=Mutator(), converage=0,
+            mutator=Mutator(), converage=0, std=0,
             rand_init=False, enable_filters=False):
         self.mutator = mutator
         self.cov = converage
+        self.std = std
         self.enable_filters = enable_filters
         if rand_init:
             self._random_init()
@@ -149,10 +150,12 @@ class GenericSearcher(object):
         self.genesize = opt.genesize
         self.popsize = opt.popsize
         self.enable_filters = opt.enable_filters
+        self.enable_iter = opt.enable_iter
         self.mutate_prob = opt.mutate_prob
         self.num_test = num_test
         self.mutator_seeds = self._init_mutator()
         self.seeds_nonsurprise = [False] * self.num_test
+        self.history_covs = None
         self.mutator_pops = []
 
     def _init_mutator(self):
@@ -204,14 +207,19 @@ class GenericSearcher(object):
         else:
             for i in range(self.num_test):
                 for j in range(self.popsize):
-                    self.mutator_pops[i][j].cov = covs[i][j].item()
+                    self.mutator_pops[i][j].cov = covs[i][j].max().item()
+                    self.mutator_pops[i][j].std = covs[i][j].std().item()
                 least_cov = self.mutator_seeds[i][-1].cov
                 q = self.mutator_seeds[i] + self.mutator_pops[i]
                 random.shuffle(q)  # shuffle for zero converage layers
-                q = sorted(q, key=lambda c: c.cov, reverse=True)
+                if self.enable_iter:
+                    q = sorted(q, key=lambda c: (int(c.cov*10), c.std), reverse=True)
+                else:
+                    q = sorted(q, key=lambda c: c.cov, reverse=True)
                 self.mutator_seeds[i] = q
                 new_least_cov = self.mutator_seeds[i][-1].cov
                 self.seeds_nonsurprise[i] = not (new_least_cov > least_cov)
+            self.history_covs = covs
 
         self.mutator_pops.clear()
 
