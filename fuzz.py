@@ -63,14 +63,14 @@ def test(
                     for lname, chns in susp_l2chn.items():
                         if len(chns) == 0:
                             continue
-                        act_info = conv_info[lname]
+                        act_info, num_neu = conv_info[lname]
                         sum_act += act_info[i][chns].sum().item()
-                        sum_neu += (len(chns) * act_info[i][0].numel())
+                        sum_neu += (len(chns) * num_neu)
                 else:  # neuconv
                     for lname in conv_info.keys():
-                        act_info = conv_info[lname]
+                        act_info, num_neu = conv_info[lname]
                         sum_act += act_info[i].sum().item()
-                        sum_neu += act_info[i].numel()
+                        sum_neu += (len(act_info[i]) * num_neu)
                 conv = sum_act / sum_neu if sum_neu > 0 else 0
                 nconv.append(conv)
 
@@ -87,8 +87,9 @@ def _forward_conv(lname):
         global conv_info
         b, c, *_ = foutput.size()
         squeeze = foutput.view(b, c, -1)
+        num_neu = squeeze.size(-1)
         actives = (squeeze > 0).sum(dim=-1).cpu()
-        conv_info[lname] = actives
+        conv_info[lname] = (actives, num_neu)
     return __hook
 
 
