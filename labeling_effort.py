@@ -1,7 +1,9 @@
+import random
+import itertools
+
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from scipy.stats import pearsonr, spearmanr, kendalltau
 
 from dataset import generate_test_dataset, load_dataset
 from generic_search import GenericSearcher
@@ -26,7 +28,7 @@ def test(
         desc="Evaluate", tqdm_leave=True):
     model.eval()
 
-    global conv_info
+    global conv_info, adv_conv, std_conv
 
     result = []
     correct, total = 0, 0
@@ -39,35 +41,45 @@ def test(
 
             total += targets.size(0)
             _, predicted = outputs.max(1)
-            comp = predicted.eq(targets)
-            correct += comp.sum().item()
+            correct += predicted.eq(targets).sum().item()
 
             acc = 100. * correct / total
             tepoch.set_postfix(acc=acc)
 
             # statistic converage
             for i, (p, t) in enumerate(zip(predicted, targets)):
+                sum_negact, sum_negneu = 0, 0
+                sum_neuact, sum_neuneu = 0, 0
                 susp_l2chn = susp[str(t.item())]
                 if any([ len(chns) == 0 for chns in susp_l2chn.values() ]):
                     continue
-
-                sum_negact, sum_negneu = 0, 0
                 for lname, chns in susp_l2chn.items():
                     act_info, num_neu = conv_info[lname]
                     sum_negact += act_info[i][chns].sum().item()
                     sum_negneu += (len(chns) * num_neu)
-                negconv = sum_negact / sum_negneu if sum_negneu > 0 else 0
-
-                sum_neuact, sum_neuneu = 0, 0
                 for lname in conv_info.keys():
                     act_info, num_neu = conv_info[lname]
                     sum_neuact += act_info[i].sum().item()
                     sum_neuneu += (len(act_info[i]) * num_neu)
+                negconv = sum_negact / sum_negneu if sum_negneu > 0 else 0
                 neuconv = sum_neuact / sum_neuneu if sum_neuneu > 0 else 0
+                result.append((negconv, neuconv, (p != t).int().item()))
 
-                result.append((negconv, neuconv, (p == t).int().item()))
+    # sample balanced 1000 results for plotting
+    num_to_sample = 1000
+    acc = correct / total
+    err_result = random.sample([r for r in result if r[2] == 1], int((1-acc) * num_to_sample))
+    corr_result = random.sample([r for r in result if r[2] == 0], int(acc * num_to_sample))
+    result = err_result + corr_result
 
-    return result
+    sorted_result = [r[2] for r in sorted(result, key=lambda x: x[0], reverse=True)]
+    negconv_accu = list(itertools.accumulate(sorted_result))
+    sorted_result = [r[2] for r in sorted(result, key=lambda x: x[1], reverse=True)]
+    neuconv_accu = list(itertools.accumulate(sorted_result))
+    random.shuffle(sorted_result)
+    rand_accu = list(itertools.accumulate(sorted_result))
+
+    return negconv_accu, neuconv_accu, rand_accu
 
 
 def _forward_conv(lname):
@@ -81,31 +93,36 @@ def _forward_conv(lname):
     return __hook
 
 
-def show_statisitc(result):
-    print('adversarial statistic')
-    adv_conv = [r[0] for r in result if r[2] == 0]
-    print('num of samples: {}'.format(len(adv_conv)))
-    print('max of negative converage: {:.2f}'.format(max(adv_conv)))
-    print('mean of negative converage: {:.2f}'.format(sum(adv_conv) / len(adv_conv)))
-    print('min of negative converage: {:.2f}'.format(min(adv_conv)))
+def export_echarts_option(opt, result, epoch):
+    negconv_accu, neuconv_accu, rand_accu = result
+    option = {
+        'legend': {
+            'data': ['random', 'neuron_conv', 'negative_conv']
+        },
+	'xAxis': {
+	    'type': 'category',
+            'boundaryGap': False,
+	    'data': [str(i) for i in range(len(rand_accu))]
+	},
+	'yAxis': {
+	    'type': 'value'
+	},
+	'series': [{
+            'name': 'random',
+            'data': rand_accu,
+            'type': 'line'
+        }, {
+            'name': 'neuron_conv',
+	    'data': neuconv_accu,
+	    'type': 'line'
+        }, {
+            'name': 'negative_conv',
+	    'data': negconv_accu,
+	    'type': 'line'
+	}]
+    };
+    export_object(opt, f'labeling_efforts_e{epoch}.json', option, indent=None)
 
-    print('\nstandard statistic')
-    std_conv = [r[0] for r in result if r[2] == 1]
-    print('num of samples: {}'.format(len(std_conv)))
-    print('max of negative converage: {:.2f}'.format(max(std_conv)))
-    print('mean of negative converage: {:.2f}'.format(sum(std_conv) / len(std_conv)))
-    print('min of negative converage: {:.2f}'.format(min(std_conv)))
-
-    print('\ncorrcoef statistic')
-    negconv = [r[0] for r in result]
-    neuconv = [r[1] for r in result]
-    predict = [r[2] for r in result]
-    print("negconv's pearson:", pearsonr(negconv, predict))
-    print("negconv's spearman:", spearmanr(negconv, predict))
-    print("negconv's kendall:", kendalltau(negconv, predict))
-    print("neuconv's pearson:", pearsonr(neuconv, predict))
-    print("neuconv's spearman:", spearmanr(neuconv, predict))
-    print("neuconv's kendall:", kendalltau(neuconv, predict))
 
 def main():
     opt = parser.parse_args()
@@ -124,12 +141,14 @@ def main():
     opt.num_test = len(testset)
     gene = GenericSearcher(opt, num_test=opt.num_test)
 
+    collect_epoch = [1, 5, 10, 20]
     for e in range(opt.fuzz_epoch):
         print('fuzz epoch =', e)
         mutators = gene.generate_next_population()
         testloader = generate_test_dataset(opt, testset, mutators)
         result = test(model, testloader, device, susp)
-        show_statisitc(result)
+        if (e + 1) in collect_epoch:
+            export_echarts_option(opt, result, e+1)
         gene.fitness()
 
     print('[info] Done.')

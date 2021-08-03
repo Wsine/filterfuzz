@@ -72,16 +72,20 @@ def preview_object(obj):
     print(json.dumps(_reduce_object(obj), indent=2, ensure_ascii=False))
 
 
-def export_object(opt, filename, obj):
+def export_object(opt, filename, obj, **kwargs):
     mode = 'b' if filename.endswith('.pkl') else ''
     dstdir = os.path.join(opt.output_dir, opt.dataset, opt.model)
 
     filepath = os.path.join(dstdir, filename)
     with open(filepath, f'w{mode}') as f:
         if mode == 'b':
-            pickle.dump(obj, f)
+            pickle.dump(obj, f, **kwargs)
         else:
-            json.dump(obj, f, indent=2, ensure_ascii=False)
+            if 'indent' not in kwargs:
+                kwargs['indent'] = 2
+            if 'ensure_ascii' not in kwargs:
+                kwargs['ensure_ascii'] = False
+            json.dump(obj, f, **kwargs)
 
 
 # borrow from: https://stackoverflow.com/questions/31174295/

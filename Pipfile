@@ -8,6 +8,7 @@ name = "pypi"
 # torchvision = {file = "https://download.pytorch.org/whl/cu111/torchvision-0.9.1%2Bcu111-cp36-cp36m-linux_x86_64.whl"}
 tqdm = "*"
 pandas = "*"
+scipy = "*"
 
 [dev-packages]
 
@@ -18,4 +19,3 @@ python_version = "3.6"
 stat_sum = "./scripts/stat_sum.sh"
 stat_overlap = "./scripts/stat_overlap.sh"
 stat_dist = "./scripts/stat_dist.sh"
-

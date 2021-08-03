@@ -1,3 +1,5 @@
+# follows: https://github.com/gaoxiang9430/sensei/blob/master/augment/ga_selector.py
+
 import random
 import copy
 
@@ -28,7 +30,7 @@ class Mutator(object):
         mx.append((TF.affine(x, 0, [0, 0], 1., self.shear), self._format_ops(idx, 'shear')))
         mx.append((TF.affine(x, self.rotate, [self.translate, self.translate_v], 1., [0, 0]),
                    self._format_ops(idx, ['rotate', 'translate'])))
-        mx.append((TF.affine(x, self.rotate, [0, 0], 1., self.shear), \
+        mx.append((TF.affine(x, self.rotate, [0, 0], 1., self.shear),
                    self._format_ops(idx, ['rotate', 'shear'])))
         mx.append((TF.adjust_brightness(x, self.brighten), self._format_ops(idx, 'brighten')))
         mx.append((TF.adjust_contrast(x, self.contrast), self._format_ops(idx, 'contrast')))
@@ -75,11 +77,14 @@ class Chromosome(object):
 
     def __init__(
             self,
-            mutator=Mutator(), converage=0, std=0,
+            mutator=Mutator(), converage=0,
+            #  std=0,
+            dst=0,
             rand_init=False, enable_filters=False):
         self.mutator = mutator
         self.cov = converage
-        self.std = std
+        #  self.std = std
+        self.dst = dst
         self.enable_filters = enable_filters
         if rand_init:
             self._random_init()
@@ -144,6 +149,20 @@ class Chromosome(object):
                 setattr(m, a, v)
         return Chromosome(m, self.cov, enable_filters=self.enable_filters)
 
+    def __sub__(self, other):
+        a, b = self.mutator, other.mutator
+        distance = 0
+        distance += a.flip ^ b.flip
+        distance += abs(a.rotate - b.rotate) / self.rotate_step
+        distance += abs(a.translate - b.translate) / self.translate_step
+        distance += abs(a.translate_v - b.translate_v) / self.translate_v_step
+        distance += abs(a.shear - b.shear) / self.shear_step
+        if self.enable_filters:
+            distance += abs(a.zoom - b.zoom) / self.zoom_step
+            distance += abs(a.brighten - b.brighten) / self.brighten_step
+            distance += abs(a.contrast - b.contrast) / self.contrast_step
+        return distance
+
 
 class GenericSearcher(object):
     def __init__(self, opt, num_test):
@@ -155,7 +174,7 @@ class GenericSearcher(object):
         self.num_test = num_test
         self.mutator_seeds = self._init_mutator()
         self.seeds_nonsurprise = [False] * self.num_test
-        self.history_covs = None
+        self.history_pops = None
         self.mutator_pops = []
 
     def _init_mutator(self):
@@ -208,18 +227,22 @@ class GenericSearcher(object):
             for i in range(self.num_test):
                 for j in range(self.popsize):
                     self.mutator_pops[i][j].cov = covs[i][j].max().item()
-                    self.mutator_pops[i][j].std = covs[i][j].std().item()
+                    #  self.mutator_pops[i][j].std = covs[i][j].std().item()
+                    self.mutator_pops[i][j].dst = min([
+                        self.mutator_pops[i][j] - m for m in self.history_pops[i]
+                    ]) if self.history_pops is not None else 0
                 least_cov = self.mutator_seeds[i][-1].cov
                 q = self.mutator_seeds[i] + self.mutator_pops[i]
                 random.shuffle(q)  # shuffle for zero converage layers
                 if self.enable_iter:
-                    q = sorted(q, key=lambda c: (int(c.cov*10), c.std), reverse=True)
+                    #  q = sorted(q, key=lambda c: (int(c.cov*10), c.std), reverse=True)
+                    q = sorted(q, key=lambda c: (int(c.dst+0.5), int(c.cov*10),), reverse=True)
                 else:
                     q = sorted(q, key=lambda c: c.cov, reverse=True)
                 self.mutator_seeds[i] = q
                 new_least_cov = self.mutator_seeds[i][-1].cov
                 self.seeds_nonsurprise[i] = not (new_least_cov > least_cov)
-            self.history_covs = covs
+            self.history_pops = self.mutator_pops[:]
 
         self.mutator_pops.clear()
 
