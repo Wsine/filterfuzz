@@ -34,7 +34,7 @@ class GTSRB(Dataset):
             val_data = self.csv_data.iloc[:, 0].map(lambda p: int(p.split('/')[1].split('_')[0])).isin((0, 1, 2))
             self.csv_data.drop(self.csv_data[val_data].index, inplace=True)
         elif self.stype == 'val':
-            val_data = self.csv_data.iloc[:, 1].map(lambda p: int(p.split('/')[1].split('_')[0])).isin((0, 1, 2))
+            val_data = self.csv_data.iloc[:, 0].map(lambda p: int(p.split('/')[1].split('_')[0])).isin((0, 1, 2))
             self.csv_data = self.csv_data[val_data]
 
         self.transform = transform

@@ -1,4 +1,5 @@
 import logging
+import hashlib
 
 import torch
 import torch.nn as nn
@@ -46,12 +47,30 @@ def test(
             acc = 100. * correct / total
             tepoch.set_postfix(acc=acc)
 
-            #  logging the adversarial samples
+            # logging the adversarial samples
             err_idx = (~comp).nonzero().flatten().tolist()
             for eid in err_idx:
                 p = predicted[eid].item()
                 t = targets[eid].item()
-                logging.info('%s | %s', descs[eid], f'predict: {p}, target: {t}')
+
+                if opt.politice == 'random':
+                    f = 'none'
+                else:
+                    f = ''
+                    susp_l2chn = susp[str(t)]
+                    for lname, chns in susp_l2chn.items():
+                        if len(chns) == 0:
+                            continue
+                        f += lname + ':'
+                        act_info, num_neu = conv_info[lname]
+                        for chn in chns:
+                            num_act = act_info[eid][chn].sum().item()
+                            ratio = num_act / num_neu
+                            if ratio > 0.5:
+                                f += str(chn) + ','
+                    f = str(int(hashlib.sha1(f.encode('utf-8')).hexdigest(), 16) % (10 ** 8))
+
+                logging.info('%s | %s - %s', descs[eid], f'predict: {p}, target: {t}', f'cat: {f}')
 
             # statistic converage
             if opt.politice == 'random':
@@ -115,7 +134,6 @@ def main():
         for n, m in model.named_modules():
             if isinstance(m, nn.Conv2d):
                 m.register_forward_hook(_forward_conv(n))
-    if opt.politice == 'negconv':
         susp = load_select_info(opt)
     else:
         susp = None
