@@ -236,10 +236,11 @@ class GenericSearcher(object):
                 random.shuffle(q)  # shuffle for zero converage layers
                 if self.enable_iter:
                     #  q = sorted(q, key=lambda c: (int(c.cov*10), c.std), reverse=True)
-                    q = sorted(q, key=lambda c: (int(c.dst+0.5), int(c.cov*10),), reverse=True)
+                    #  q = sorted(q, key=lambda c: (int(c.dst+0.5), int(c.cov*10)), reverse=True)
+                    q = sorted(q, key=lambda c: (int(c.cov*10), int(c.dst+0.5)), reverse=True)
                 else:
                     q = sorted(q, key=lambda c: c.cov, reverse=True)
-                self.mutator_seeds[i] = q
+                self.mutator_seeds[i] = q[:self.genesize]
                 new_least_cov = self.mutator_seeds[i][-1].cov
                 self.seeds_nonsurprise[i] = not (new_least_cov > least_cov)
             self.history_pops = self.mutator_pops[:]

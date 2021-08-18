@@ -25,6 +25,7 @@ if [[ "$#" -eq 2 && "$2" == "-e" ]]; then
   echo "num of epoches: $((${#epoch_split[@]} + 1))"
 
   for i in {1,5,10,15}; do
+  # for i in {1..19}; do
     split="${epoch_split[$((i+1))]}"
     echo -n "num of epoch $i: "
     head -n$split $1 | awk -F ' - ' '{print $2}' | sort | uniq | wc -l
