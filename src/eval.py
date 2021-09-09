@@ -1,9 +1,7 @@
 import torch
-import torch.nn as nn
 from tqdm import tqdm
 
 from dataset import generate_test_dataset, load_dataset
-from generic_search import GenericSearcher
 from model import load_model
 from arguments import Args, parser
 from utils import *

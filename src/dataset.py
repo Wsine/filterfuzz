@@ -1,7 +1,6 @@
 import torch
-import torchvision
 import torchvision.transforms as T
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader
 
 from datasets.gtsrb import GTSRB
 

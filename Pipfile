@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-# torch = {file = "https://download.pytorch.org/whl/cu111/torch-1.8.1%2Bcu111-cp36-cp36m-linux_x86_64.whl"}
-# torchvision = {file = "https://download.pytorch.org/whl/cu111/torchvision-0.9.1%2Bcu111-cp36-cp36m-linux_x86_64.whl"}
+torch = {version = "==1.8.1", index = "https://download.pytorch.org/whl/cu111/"}
+torchvision = {version = "==0.9.1", index = "https://download.pytorch.org/whl/cu111/"}
 tqdm = "*"
 pandas = "*"
 scipy = "*"
@@ -17,6 +17,4 @@ python_version = "3.6"
 
 [scripts]
 stat_sum = "./scripts/stat_sum.sh"
-stat_overlap = "./scripts/stat_overlap.sh"
-stat_dist = "./scripts/stat_dist.sh"
 stat_diversity = "./scripts/stat_diversity.sh"

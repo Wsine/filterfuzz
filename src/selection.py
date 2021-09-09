@@ -61,17 +61,6 @@ def performance_loss(opt, model, valloader, device):
         for c in range(num_classes):
             suspicious[str(c)][lname] = indices[c]
 
-    #  l2module = rgetattr(model, 'fc1')
-    #  num_neurons = l2module.out_features
-    #  suspicious = { str(c): [] for c in range(num_classes) }
-    #  for nidx in tqdm(range(num_neurons), desc="Neurons"):
-    #      handle = l2module.register_forward_hook(_mask_out_channel(nidx))
-    #      _, c_acc = test(model, valloader, device, num_classes, tqdm_leave=False)
-    #      for c in range(num_classes):
-    #          if c_acc[c] > base_c_acc[c]:
-    #              suspicious[str(c)].append(nidx)
-    #      handle.remove()
-
     return suspicious
 
 

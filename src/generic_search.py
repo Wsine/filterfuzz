@@ -227,7 +227,6 @@ class GenericSearcher(object):
             for i in range(self.num_test):
                 for j in range(self.popsize):
                     self.mutator_pops[i][j].cov = covs[i][j].max().item()
-                    #  self.mutator_pops[i][j].std = covs[i][j].std().item()
                     self.mutator_pops[i][j].dst = min([
                         self.mutator_pops[i][j] - m for m in self.history_pops[i]
                     ]) if self.history_pops is not None else 0
@@ -235,8 +234,6 @@ class GenericSearcher(object):
                 q = self.mutator_seeds[i] + self.mutator_pops[i]
                 random.shuffle(q)  # shuffle for zero converage layers
                 if self.enable_iter:
-                    #  q = sorted(q, key=lambda c: (int(c.cov*10), c.std), reverse=True)
-                    #  q = sorted(q, key=lambda c: (int(c.dst+0.5), int(c.cov*10)), reverse=True)
                     q = sorted(q, key=lambda c: (int(c.cov*10), int(c.dst+0.5)), reverse=True)
                 else:
                     q = sorted(q, key=lambda c: c.cov, reverse=True)
