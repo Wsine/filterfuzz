@@ -15,7 +15,7 @@ class Args(object):
 devices = ['cpu', 'cuda']
 datasets = ['cifar10', 'cifar100', 'gtsrb']
 models = ['resnet32', 'vgg16_bn', 'convstn']
-politices = ['random', 'negconv', 'neuconv']
+politices = ['random', 'negconv', 'neuconv', 'none']
 
 
 parser = argparse.ArgumentParser()

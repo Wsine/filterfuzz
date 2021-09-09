@@ -16,5 +16,7 @@ scipy = "*"
 python_version = "3.6"
 
 [scripts]
-stat_sum = "./scripts/stat_sum.sh"
+evaluate = "python src/eval.py -d gtsrb -m convstn -p none"
+fuzz     = "python src/fuzz.py -d gtsrb -m convstn -p negconv"
+stat_sum       = "./scripts/stat_sum.sh"
 stat_diversity = "./scripts/stat_diversity.sh"
