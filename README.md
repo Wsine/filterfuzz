@@ -1,6 +1,6 @@
 <img align="right" height="200" src="https://s1.52poke.wiki/wiki/thumb/c/c5/161Sentret.png/300px-161Sentret.png">
 
-# DeepPatch
+# FilterFuzz
 
 Project Code: Sentret
 
@@ -12,7 +12,7 @@ Under review
 
 ## Preparation
 
-The dataset needs to be downloaded manually. Please refer to 'data/README.md'.
+The dataset needs to be downloaded manually. Please refer to [data/README.md](data/README.md).
 
 ## Installation
 
@@ -37,4 +37,3 @@ fuzz            python src/fuzz.py -d gtsrb -m convstn -p negconv
 stat_sum        ./scripts/stat_sum.sh
 stat_diversity  ./scripts/stat_diversity.sh
 ```
-
