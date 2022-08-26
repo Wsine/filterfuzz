@@ -8,7 +8,7 @@ For more details, please refer to the following publication.
 
 ## Publication
 
-Under review
+Z. Wei and W. K. Chan, "Fuzzing Deep Learning Models against Natural Robustness with Filter Coverage‡," 2021 IEEE 21st International Conference on Software Quality, Reliability and Security (QRS), 2021, pp. 608-619, doi: 10.1109/QRS54544.2021.00071.
 
 ## Preparation
 
