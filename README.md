@@ -1,5 +1,3 @@
-<img align="right" height="200" src="https://s1.52poke.wiki/wiki/thumb/c/c5/161Sentret.png/300px-161Sentret.png">
-
 # FilterFuzz
 
 Project Code: Sentret
@@ -9,6 +7,19 @@ For more details, please refer to the following publication.
 ## Publication
 
 Z. Wei and W. K. Chan, "Fuzzing Deep Learning Models against Natural Robustness with Filter Coverage‡," 2021 IEEE 21st International Conference on Software Quality, Reliability and Security (QRS), 2021, pp. 608-619, doi: 10.1109/QRS54544.2021.00071.
+
+```
+@inproceedings{9724948,
+	title        = {Fuzzing Deep Learning Models against Natural Robustness with Filter Coverage‡},
+	author       = {Wei, Zhengyuan and Chan, W.K.},
+	year         = 2021,
+	booktitle    = {2021 IEEE 21st International Conference on Software Quality, Reliability and Security (QRS)},
+	volume       = {},
+	number       = {},
+	pages        = {608--619},
+	doi          = {10.1109/QRS54544.2021.00071}
+}
+```
 
 ## Preparation
 
